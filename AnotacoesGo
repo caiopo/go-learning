@@ -1,0 +1,138 @@
+Imports
+	> fmt // standard in/out
+	> math // funcos basicas para operacoes matematicas
+	> strings // funcoes basicas para operacoes com strings
+	> bufio //
+	> strconv	
+
+Tipos primitivos:
+	> bool string int  int8  int16  int32  int64 uint uint8 uint16 uint32 uint64 uintptr
+	> byte rune float32 float64 complex64 complex128
+
+
+Ponteiros:
+	> Ampersand (&) cria um ponteiro para uma variavel
+		Ex:
+			i := 42
+			j := &i
+
+	> Para acessar ou alterar o valor de i, pode-se usar o ponteiro criado
+		Ex:
+			fmt.Println(*j)
+			*j = 50
+
+Structs:
+	> Como no C, representa um conjunto de variaveis
+		Ex:
+			type Ponto struct {
+				x int
+				y int
+			}
+
+			p := Ponto{1, 2}
+
+			fmt.Println(p.x, p.y)
+
+	> variaveis dentro de structs podem ser acessadas por um ponteiro da struct
+		Ex:
+			p := Ponto{1, 2}
+			v := &p
+			p.x = 5
+			fmt.Println(v)			
+
+Arrays e Slices:
+	> Arrays tem tamanho fixo
+	> Slices apontam para arrays
+	> Slices podem ser "resliced" para
+		Ex:
+			a := make([]int, 0, 5) // cria um slice vazio de capacidade 5 
+									// (len(a) == 0, cap(a) == 5)
+
+			b := make([]int, 3, 7) // cria um slice de capacidade 5 com 3 elementos == 0
+									// len(b) == 3, cap(b) == 5
+
+			a = append(a, 5) // adiciona o elemento 5 no primeiro elemento nulo do slice a
+							// agora: len(a) == 1, cap(a) == 5
+
+	> Caso o array esteja cheio, usar append no slice re-aloca o array para um tamanho maior e retorna um slice que aponta para o novo array
+		Ex:
+
+			c := make([]int, 5, 5) // cria um slice que aponta para um array cheio (de zeros) 						// com capacidade 5
+								// note que o array esta cheio porque cap(c) == len(c)
+
+			c = append(c, 1) // como o array apontado esta cheio, este append realocara o array
+							// apontado pelo slice c, para um com cap == 6, e adicionara o 1 ao 
+							// final do novo array
+
+	> Pode-se usar append com multiplos elementos
+		Ex:
+			c = append(c, 1, 2, 3)
+
+	> Pode-se, tambem, concatenar dois slices
+		Ex:
+			a = append(a, b...) // os tres pontos sao obrigatorios para 
+								// indicar multiplos elementos
+
+Mapas (Dicionarios):
+	> Declaracao:
+		m := make(map[tipoKey]tipoValue)
+
+	> Adicionar/update elemento:
+		m[key] = value
+
+	> Para saber se existe um elemento no map pode se usar:
+		elemento, ok := m[key]
+		// Entao olha-se o valor de ok, caso true, o value estara na variavel elemento
+		// caso false, a key nao existe no map
+	> Para remover um elemento:
+		delete(m, key)
+
+Clausura/Closure:
+	> Funcoes podem retornar outras funcoes:
+		Ex (fibonacci):
+
+			func fibonacci() func() int {
+				a := 0
+				b := 1
+				return func() int {
+					return b
+				}
+			}
+
+			f = fibonacci()
+
+			// agora, cada chamada de f() retornara o proximo valor de fibonacci
+
+
+
+Outros
+
+	> Nao possui classes, mas funcoes podem ser declaradas usando tipos de structs
+	
+	> Conversao explicita obrigatoria
+
+	> Suporte a constantes com alta precisao (const)
+
+	> Cada tipo possui um "valor-zero" atribuido a uma variavel em sua declaracao automaticamente:
+		int/float == 0
+		string == ""
+		bool == false
+
+	> Dentro de funcoes, variaveis podem ser criadas usando ":=", que dispensa declaracao de tipo (inferencia de tipo)
+
+	> Apenas loop "for":
+		> C-like for:
+
+			for i := 0; condicao; i++ {
+
+
+			}
+
+			> alias para while:
+
+			for condicao {
+
+
+			}
+
+	> "defer" agenda um comando para ser executado no final da funcao atual (se usado mais de uma vez em uma funcao, coloca os defers em uma pilha (LIFO))
