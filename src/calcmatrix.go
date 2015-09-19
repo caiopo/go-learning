@@ -26,6 +26,8 @@ func main() {
 
 	// a = make([][]int)
 
+	fmt.Println("teste")
+
 	a := make(Matrix, 0, 5)
 
 	// a[0] = {1, 2, 3, 4, 5}

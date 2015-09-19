@@ -7,15 +7,15 @@ import (
 
 func main() {
 
-	go teste()
-	time.Sleep(10000)
-	teste()
+	go teste(1)
+	time.Sleep(1 * time.Millisecond)
+	teste(2)
 
 }
 
-func teste() int {
+func teste(num int) int {
 
-	fmt.Println("oi")
+	fmt.Println("oi", num)
 
 	return 0
 
