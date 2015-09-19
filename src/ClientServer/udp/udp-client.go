@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+const targetPort = "56001"
+const myPort = "55000"
+
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -14,10 +17,13 @@ func CheckError(err error) {
 }
 
 func main() {
-	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:56001")
+
+	fmt.Printf("My port: %s\nTarget port: %s\n", myPort, targetPort)
+
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+targetPort)
 	CheckError(err)
 
-	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+myPort)
 	CheckError(err)
 
 	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
