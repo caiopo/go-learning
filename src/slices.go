@@ -18,4 +18,7 @@ func main() {
 
 	fmt.Println(a)
 
+	c := []int{1, 2, 3}
+
+	fmt.Println(c)
 }

@@ -8,13 +8,14 @@ import (
 )
 
 // const recvPort = ":56001"
-// const targetPort = ":56002"
+// const targetPorts = ":56002"
 
 // const recvPort = ":56002"
-// const targetPort = ":56001"
+// const targetPorts = ":56001"
 
 var (
-	recvPort, targetPort, sendPort string
+	serverName, recvPort string
+	targetPorts          []string
 )
 
 /* A Simple function to verify error */
@@ -31,8 +32,6 @@ func main() {
 
 	hist = make([]string, 0)
 
-	hist = append(hist, "1", "2", "3")
-
 	// fmt.Println(hist[0])
 
 	// fmt.Println(has(hist, "5"))
@@ -43,17 +42,22 @@ func main() {
 
 	switch sel {
 	case 0:
-		recvPort = ":56000"
-		targetPort = ":56001"
-		sendPort = ":56020"
+		recvPort = "56000"
+		targetPorts = []string{"56001", "56002"}
+		serverName = "Server 0"
 	case 1:
-		recvPort = ":56001"
-		targetPort = ":56000"
-		sendPort = ":56021"
-
+		recvPort = "56001"
+		targetPorts = []string{"56000", "56002"}
+		serverName = "Server 1"
+	case 2:
+		recvPort = "56002"
+		targetPorts = []string{"56001", "56000"}
+		serverName = "Server 2"
 	}
 
-	fmt.Printf("Listening on port %s\nSending to port %s\nMy sending port is %s\n", recvPort, targetPort, sendPort)
+	fmt.Printf("My name is %s\nListening on port %s\nSending to ports %s\n", serverName, recvPort, targetPorts)
+
+	go showHist()
 
 	ch := make(chan string, 3)
 
@@ -66,7 +70,9 @@ func main() {
 				continue
 			} else {
 				hist = append(hist, msg)
-				go send(msg)
+				for _, t := range targetPorts {
+					go send(t, msg)
+				}
 			}
 			// fmt.Printf(">%s<\n", msg)
 
@@ -80,7 +86,7 @@ func main() {
 
 func recv(ch chan string) {
 	/* Lets prepare a address at any address at port 10001*/
-	ServerAddr, err := net.ResolveUDPAddr("udp", recvPort)
+	ServerAddr, err := net.ResolveUDPAddr("udp", ":"+recvPort)
 	CheckError(err)
 
 	/* Now listen at selected port */
@@ -104,18 +110,18 @@ func recv(ch chan string) {
 
 }
 
-func send(msg string) {
-	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1"+targetPort)
+func send(target, msg string) {
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+target)
 	CheckError(err)
 
-	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1"+sendPort)
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	CheckError(err)
 
 	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
 	CheckError(err)
 
 	// fmt.Println(port)
-	defer fmt.Println("Finished sending", msg)
+	defer fmt.Printf("Finished sending %s to %s\n", msg, target)
 	defer Conn.Close()
 
 	// for {
@@ -140,6 +146,22 @@ func has(h []string, str string) bool {
 
 	return false
 
+}
+
+func showHist() {
+
+	var in string
+
+	for {
+
+		fmt.Scanf("%s", &in)
+
+		// if in != nil {
+
+		fmt.Println(hist)
+
+		// }
+	}
 }
 
 // func send(msg string, ch chan string) {
