@@ -36,20 +36,22 @@ func main() {
 
 	// fmt.Println(has(hist, "5"))
 
-	var sel int
+	// var sel int
 
-	fmt.Scanf("%d", &sel)
+	// fmt.Scanf("%d", &sel)
+
+	sel := os.Args[1]
 
 	switch sel {
-	case 0:
+	case "3":
 		recvPort = "56000"
 		targetPorts = []string{"56001", "56002"}
 		serverName = "Server 0"
-	case 1:
+	case "1":
 		recvPort = "56001"
 		targetPorts = []string{"56000", "56002"}
 		serverName = "Server 1"
-	case 2:
+	case "2":
 		recvPort = "56002"
 		targetPorts = []string{"56001", "56000"}
 		serverName = "Server 2"
@@ -157,9 +159,11 @@ func showHist() {
 		fmt.Scanf("%s", &in)
 
 		// if in != nil {
-
-		fmt.Println(hist)
-
+		fmt.Print("History:\n{ ")
+		for _, s := range hist {
+			fmt.Print(s + " ")
+		}
+		fmt.Println("}")
 		// }
 	}
 }

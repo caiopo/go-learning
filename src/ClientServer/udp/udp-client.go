@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
-const targetPort = "56001"
-const myPort = "55000"
+var targetPorts []string = []string{"56000", "56001", "56002"}
+
+// const myPort = "55000"
 
 func CheckError(err error) {
 	if err != nil {
@@ -18,12 +19,31 @@ func CheckError(err error) {
 
 func main() {
 
-	fmt.Printf("My port: %s\nTarget port: %s\n", myPort, targetPort)
+	fmt.Printf("Target ports: %s\n", targetPorts)
 
-	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+targetPort)
+	for {
+
+		var msg string
+
+		fmt.Print("Message to send: >> ")
+		fmt.Scanf("%s", &msg)
+
+		for _, t := range targetPorts {
+			go send(t, msg)
+		}
+
+		time.Sleep(500 * time.Millisecond)
+
+	}
+
+}
+
+func send(target, msg string) {
+
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+target)
 	CheckError(err)
 
-	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+myPort)
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	CheckError(err)
 
 	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
@@ -32,17 +52,14 @@ func main() {
 	// fmt.Println(port)
 
 	defer Conn.Close()
-	for {
+	// for {
 
-		var msg string
+	buf := []byte(msg)
+	_, err = Conn.Write(buf)
 
-		fmt.Scanf("%s", &msg)
-
-		buf := []byte(msg)
-		_, err := Conn.Write(buf)
-		if err != nil {
-			fmt.Println(msg, err)
-		}
-		time.Sleep(time.Second * 1)
+	fmt.Printf("Sent message %s to %s as %d\n", msg, target, LocalAddr.Port)
+	if err != nil {
+		fmt.Println(msg, err)
 	}
+	// }
 }
