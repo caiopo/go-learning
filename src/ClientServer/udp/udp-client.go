@@ -52,14 +52,12 @@ func send(target, msg string) {
 	// fmt.Println(port)
 
 	defer Conn.Close()
-	// for {
 
 	buf := []byte(msg)
 	_, err = Conn.Write(buf)
 
-	fmt.Printf("Sent message %s to %s as %d\n", msg, target, LocalAddr.Port)
+	fmt.Printf("Sent message %s to %s\n", msg, target)
 	if err != nil {
 		fmt.Println(msg, err)
 	}
-	// }
 }

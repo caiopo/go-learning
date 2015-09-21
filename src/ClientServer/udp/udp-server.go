@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -32,14 +33,6 @@ func main() {
 
 	hist = make([]string, 0)
 
-	// fmt.Println(hist[0])
-
-	// fmt.Println(has(hist, "5"))
-
-	// var sel int
-
-	// fmt.Scanf("%d", &sel)
-
 	sel := os.Args[1]
 
 	switch sel {
@@ -65,15 +58,31 @@ func main() {
 
 	go recv(ch)
 
+	updateHist(ch)
+
+}
+
+func updateHist(ch chan string) {
 	for {
 		select {
 		case msg := <-ch:
-			if has(hist, msg) {
-				continue
+
+			if startsWith("history ", msg) {
+
+				tempHist := strings.Fields(strings.TrimPrefix(msg, "history "))
+
+				if tempHist >= len(hist) {
+					hist = tempHist
+				}
 			} else {
-				hist = append(hist, msg)
-				for _, t := range targetPorts {
-					go send(t, msg)
+
+				if contains(hist, msg) {
+					continue
+				} else {
+					hist = append(hist, msg)
+					for _, t := range targetPorts {
+						go sendHistory(t)
+					}
 				}
 			}
 			// fmt.Printf(">%s<\n", msg)
@@ -83,7 +92,6 @@ func main() {
 		}
 
 	}
-
 }
 
 func recv(ch chan string) {
@@ -138,7 +146,7 @@ func send(target, msg string) {
 	// }
 }
 
-func has(h []string, str string) bool {
+func contains(h []string, str string) bool {
 
 	for _, s := range h {
 		if s == str {
@@ -166,6 +174,57 @@ func showHist() {
 		fmt.Println("}")
 		// }
 	}
+}
+
+func sendHistory(target string) {
+
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+target)
+	CheckError(err)
+
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	CheckError(err)
+
+	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
+	CheckError(err)
+
+	defer Conn.Close()
+
+	msg := "history " + string(time.Now().UTC().UnixNano()) + " "
+
+	for _, i := range hist {
+
+		msg += i + " "
+
+	}
+
+	buf := []byte(msg)
+	_, err = Conn.Write(buf)
+
+	fmt.Printf("Sent history to %s\n", target)
+
+	if err != nil {
+		fmt.Println(msg, err)
+	}
+
+}
+
+func startsWith(smaller, larger string) bool {
+
+	lenS := len(smaller)
+	lenL := len(larger)
+
+	switch {
+
+	case lenS > lenL:
+		return false
+
+	case smaller == larger[0:lenS]:
+		return true
+
+	default:
+		return false
+	}
+
 }
 
 // func send(msg string, ch chan string) {
