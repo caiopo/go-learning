@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	// "strconv"
-	"time"
+	// "time"
 )
 
 var targetPorts []string = []string{"56000", "56001", "56002"}
@@ -25,14 +25,14 @@ func main() {
 
 		var msg string
 
-		fmt.Print("Message to send: >> ")
+		// fmt.Print("Message to send: >> ")
 		fmt.Scanf("%s", &msg)
 
 		for _, t := range targetPorts {
 			go send(t, msg)
 		}
 
-		time.Sleep(500 * time.Millisecond)
+		// time.Sleep(500 * time.Millisecond)
 
 	}
 
