@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -71,9 +72,11 @@ func updateHist(ch chan string) {
 
 				tempHist := strings.Fields(strings.TrimPrefix(msg, "history "))
 
-				if tempHist >= len(hist) {
+				// if len(tempHist) >= len(hist) {
+				if hist[0] < tempHist[0] {
 					hist = tempHist
 				}
+
 			} else {
 
 				if contains(hist, msg) {
@@ -189,7 +192,7 @@ func sendHistory(target string) {
 
 	defer Conn.Close()
 
-	msg := "history " + string(time.Now().UTC().UnixNano()) + " "
+	msg := "history " + strconv.FormatInt(time.Now().UTC().UnixNano(), 10) + " "
 
 	for _, i := range hist {
 

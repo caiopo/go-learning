@@ -2,11 +2,18 @@ package main
 
 import (
 	. "fmt"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
 
+	t := time.Now().UTC().UnixNano()
+
+	Println(t)
+
+	Println(strconv.FormatInt(t, 10))
 	str1, str2, str3 := "hist", "history", "tes te t asd fad h          "
 
 	// array := strings.Fields(str3)
