@@ -2,14 +2,27 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
-	// "strconv"
-	// "time"
+	"strconv"
+	"strings"
+	"time"
 )
+
+const filename = "test.txt"
 
 var targetPorts []string = []string{"56000", "56001", "56002"}
 
 // const myPort = "55000"
+
+func getFile() []string {
+	file, err := ioutil.ReadFile(filename)
+	CheckError(err)
+
+	s := strings.Fields(string(file))
+
+	return s
+}
 
 func CheckError(err error) {
 	if err != nil {
@@ -21,16 +34,30 @@ func main() {
 
 	fmt.Printf("Target ports: %s\n", targetPorts)
 
+	file := getFile()
+
+	fmt.Println(file)
+
+	var i int
+
 	for {
 
-		var msg string
+		// var msg string
+
+		msg := file[i%len(file)]
+		i++
 
 		// fmt.Print("Message to send: >> ")
-		fmt.Scanf("%s", &msg)
+
+		// fmt.Scanf("%s", &msg)
+
+		tempo := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 
 		for _, t := range targetPorts {
-			go send(t, msg)
+			go send(t, msg, tempo)
 		}
+
+		time.Sleep(time.Millisecond)
 
 		// time.Sleep(500 * time.Millisecond)
 
@@ -38,7 +65,7 @@ func main() {
 
 }
 
-func send(target, msg string) {
+func send(target, msg, tempo string) {
 
 	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+target)
 	CheckError(err)
@@ -53,7 +80,10 @@ func send(target, msg string) {
 
 	defer Conn.Close()
 
+	msg += ":" + tempo
+
 	buf := []byte(msg)
+
 	_, err = Conn.Write(buf)
 
 	fmt.Printf("Sent message %s to %s\n", msg, target)

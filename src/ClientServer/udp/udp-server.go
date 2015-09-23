@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+type Entry struct {
+	key   string
+	milis int64
+}
+
 // const recvPort = ":56001"
 // const targetPorts = ":56002"
 
@@ -16,8 +21,8 @@ import (
 // const targetPorts = ":56001"
 
 var (
-	serverName, recvPort string
-	targetPorts          []string
+	serverName, recvPortS, recvPortC string
+	targetPorts                      []string
 )
 
 /* A Simple function to verify error */
@@ -28,78 +33,73 @@ func CheckError(err error) {
 	}
 }
 
-var hist []string
+var hist map[string]int64
 
 func main() {
 
-	hist = make([]string, 0)
+	hist = make(map[string]int64, 0)
 
 	sel := os.Args[1]
 
 	switch sel {
 	case "3":
-		recvPort = "56000"
-		targetPorts = []string{"56001", "56002"}
+		recvPortC = "56000"
+		recvPortS = "56100"
+		targetPorts = []string{"56101", "56102"}
 		serverName = "Server 0"
 	case "1":
-		recvPort = "56001"
-		targetPorts = []string{"56000", "56002"}
+		recvPortC = "56001"
+		recvPortS = "56101"
+		targetPorts = []string{"56100", "56102"}
 		serverName = "Server 1"
 	case "2":
-		recvPort = "56002"
-		targetPorts = []string{"56001", "56000"}
+		recvPortC = "56002"
+		recvPortS = "56102"
+		targetPorts = []string{"56101", "56100"}
 		serverName = "Server 2"
 	}
 
-	fmt.Printf("My name is %s\nListening on port %s\nSending to ports %s\n", serverName, recvPort, targetPorts)
+	fmt.Printf("My name is %s\nListening clients on port %s\nListening servers on port %s\nSending to ports %s\n", serverName, recvPortC, recvPortS, targetPorts)
 
 	go showHist()
 
-	ch := make(chan string, 3)
+	ch := make(chan Entry, 3)
 
-	go recv(ch)
+	go recvFromClient(ch)
+
+	go recvFromServer()
+
+	go sendAndSleep()
 
 	updateHist(ch)
 
 }
 
-func updateHist(ch chan string) {
+func updateHist(ch <-chan Entry) {
 	for {
 		select {
 		case msg := <-ch:
 
-			if startsWith("history ", msg) {
+			// fmt.Println("Update history:", msg)
 
-				tempHist := strings.Fields(strings.TrimPrefix(msg, "history "))
+			if hist[msg.key] != 0 {
+				if hist[msg.key] < msg.milis {
 
-				// if len(tempHist) >= len(hist) {
-				if hist[0] < tempHist[0] {
-					hist = tempHist
+					hist[msg.key] = msg.milis
+
 				}
-
 			} else {
-
-				if contains(hist, msg) {
-					continue
-				} else {
-					hist = append(hist, msg)
-					for _, t := range targetPorts {
-						go sendHistory(t)
-					}
-				}
+				hist[msg.key] = msg.milis
 			}
-			// fmt.Printf(">%s<\n", msg)
 
-			// default:
-			// 	continue
 		}
 
 	}
 }
 
-func recv(ch chan string) {
+func recvFromClient(ch chan<- Entry) {
 	/* Lets prepare a address at any address at port 10001*/
-	ServerAddr, err := net.ResolveUDPAddr("udp", ":"+recvPort)
+	ServerAddr, err := net.ResolveUDPAddr("udp", ":"+recvPortC)
 	CheckError(err)
 
 	/* Now listen at selected port */
@@ -110,17 +110,94 @@ func recv(ch chan string) {
 	buf := make([]byte, 1024)
 
 	for {
-		n, addr, err := ServerConn.ReadFromUDP(buf)
+		// recebe um array de bytes
+		n, _, err := ServerConn.ReadFromUDP(buf)
 
+		//converte o array de bytes para string
 		msgRecv := string(buf[0:n])
-		fmt.Println("Received ", msgRecv, " from ", addr)
-		ch <- msgRecv
-		time.Sleep(1 * time.Second)
+		// fmt.Println("Received ", msgRecv, " from ", addr)
+
+		// separa a mensagem e o timestamp
+		if len(msgRecv) > 3 {
+			tempRecv := strings.FieldsFunc(msgRecv, filterColon)
+
+			// cria uma entry com os dados recebidos e a coloca no canal
+			parsed, _ := strconv.ParseInt(tempRecv[1], 10, 64)
+
+			entryRecv := Entry{tempRecv[0], parsed}
+
+			ch <- entryRecv
+		}
+		// time.Sleep(1 * time.Second)
 		if err != nil {
 			fmt.Println("Error: ", err)
 		}
 	}
 
+}
+
+func recvFromServer() {
+	/* Lets prepare a address at any address at port 10001*/
+	ServerAddr, err := net.ResolveUDPAddr("udp", ":"+recvPortS)
+	CheckError(err)
+
+	/* Now listen at selected port */
+	ServerConn, err := net.ListenUDP("udp", ServerAddr)
+	CheckError(err)
+	defer ServerConn.Close()
+
+	buf := make([]byte, 1024)
+
+	for {
+		// recebe um array de bytes
+		n, _, err := ServerConn.ReadFromUDP(buf)
+
+		//converte o array de bytes para string
+		msgRecv := string(buf[0:n])
+		// fmt.Println("Received ", msgRecv, " from ", addr)
+
+		// separa a mensagem e o timestamp
+
+		// time.Sleep(1 * time.Second)
+		if err != nil {
+			fmt.Println("Error: ", err)
+		}
+
+		syncHist(msgRecv)
+	}
+
+}
+
+func syncHist(msg string) {
+
+	if startsWith("history ", msg) {
+
+		strings.TrimPrefix(msg, "history")
+
+		array := strings.Fields(msg)
+
+		m := make(map[string]int64)
+
+		if len(array) >= 2 {
+			for _, i := range array {
+
+				aTemp := strings.FieldsFunc(i, filterColon)
+
+				if len(aTemp) >= 2 {
+					m[aTemp[0]], _ = strconv.ParseInt(aTemp[1], 10, 64)
+				}
+			}
+
+			for k, v := range m {
+				if hist[k] == 0 || hist[k] < v {
+
+					hist[k] = v
+
+				}
+			}
+		}
+
+	}
 }
 
 func send(target, msg string) {
@@ -161,21 +238,15 @@ func contains(h []string, str string) bool {
 
 }
 
-func showHist() {
-
-	var in string
-
+func sendAndSleep() {
 	for {
 
-		fmt.Scanf("%s", &in)
-
-		// if in != nil {
-		fmt.Print("History:\n{ ")
-		for _, s := range hist {
-			fmt.Print(s + " ")
+		// time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second * 2)
+		for _, t := range targetPorts {
+			sendHistory(t)
 		}
-		fmt.Println("}")
-		// }
+
 	}
 }
 
@@ -192,18 +263,20 @@ func sendHistory(target string) {
 
 	defer Conn.Close()
 
-	msg := "history " + strconv.FormatInt(time.Now().UTC().UnixNano(), 10) + " "
+	msg := "history "
 
-	for _, i := range hist {
+	for k, v := range hist {
 
-		msg += i + " "
+		msg += k + ":" + strconv.FormatInt(v, 10) + " "
 
 	}
+
+	// fmt.Println("Sending history:", msg)
 
 	buf := []byte(msg)
 	_, err = Conn.Write(buf)
 
-	fmt.Printf("Sent history to %s\n", target)
+	// fmt.Printf("Sent history to %s\n", target)
 
 	if err != nil {
 		fmt.Println(msg, err)
@@ -230,6 +303,83 @@ func startsWith(smaller, larger string) bool {
 
 }
 
+func filterColon(x rune) bool {
+	return fmt.Sprintf("%c", x) == ":"
+}
+
+type EntryList []Entry
+
+func (e EntryList) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+
+func (e EntryList) Len() int {
+	return len(e)
+}
+
+func (e EntryList) Less(i, j int) bool {
+	return e[i].milis < e[j].milis
+}
+
+func sortMapByValue(m map[string]int64) EntryList {
+	e := make(EntryList, len(m))
+	i := 0
+	for k, v := range m {
+		e[i] = Entry{k, v}
+		i++
+	}
+
+	// sort.Sort(e)
+	sorted := true
+
+	for sorted {
+		sorted = false
+		for i := 0; i < e.Len()-1; i++ {
+
+			if e.Less(i+1, i) {
+				sorted = true
+				e.Swap(i, i+1)
+
+			}
+		}
+	}
+
+	return e
+}
+
+func showHist() {
+
+	var in string
+
+	for {
+
+		fmt.Scanf("%s", &in)
+
+		sortedArray := sortMapByValue(hist)
+
+		fmt.Print("History:\n{ ")
+		for _, i := range sortedArray {
+			fmt.Printf("%s ", i.key)
+		}
+		fmt.Println("}")
+	}
+}
+
+// func makeHist(m map[string]int64) {
+
+// }
+
+// func sortMapByValue(m map[string]int64) EntryList {
+// 	e := make(EntryList, len(m))
+// 	i := 0
+// 	for k, v := range m {
+// 		e[i] = Entry{k, v}
+// 	}
+
+// 	sort.Sort(e)
+// 	return e
+// }
+
 // func send(msg string, ch chan string) {
 // 	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:56001")
 // 	CheckError(err)
@@ -253,5 +403,44 @@ func startsWith(smaller, larger string) bool {
 // 			fmt.Println(msg, err)
 // 		}
 // 		time.Sleep(time.Second * 1)
+// 	}
+// }
+
+// func updateHist(ch <-chan string) {
+// 	for {
+// 		select {
+// 		case msg := <-ch:
+
+// 			if startsWith("history ", msg) {
+
+// 				tempHist := strings.Fields(strings.TrimPrefix(msg, "history "))
+
+// 				// if len(tempHist) >= len(hist) {
+// 				if hist[0] < tempHist[0] {
+// 					hist = tempHist
+
+// 					for _, t := range targetPorts {
+// 						go sendHistory(t)
+// 					}
+
+// 				}
+
+// 			} else {
+
+// 				if contains(hist, msg) {
+// 					continue
+// 				} else {
+// 					hist = append(hist, msg)
+// 					for _, t := range targetPorts {
+// 						go sendHistory(t)
+// 					}
+// 				}
+// 			}
+// 			// fmt.Printf(">%s<\n", msg)
+
+// 			// default:
+// 			// 	continue
+// 		}
+
 // 	}
 // }
