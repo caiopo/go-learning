@@ -2,19 +2,28 @@ package main
 
 import (
 	"fmt"
-	// "io/ioutil"
+	"io/ioutil"
+	"math/rand"
 	"net"
 	"strconv"
-	// "strings"
+	"strings"
 	"time"
 )
 
 const filename = "test.txt"
-const serverIP = "localhost"
 
 var targetPorts []string = []string{"56000", "56001", "56002"}
 
 // const myPort = "55000"
+
+func getFile() []string {
+	file, err := ioutil.ReadFile(filename)
+	CheckError(err)
+
+	s := strings.Fields(string(file))
+
+	return s
+}
 
 func CheckError(err error) {
 	if err != nil {
@@ -24,17 +33,25 @@ func CheckError(err error) {
 
 func main() {
 
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	fmt.Printf("Target ports: %s\n", targetPorts)
+
+	file := getFile()
+
+	fmt.Println(file)
+
+	tamArray := len(file)
+
+	var msg string
 
 	for {
 
-		var msg string
-
-		fmt.Print(">> ")
-
-		fmt.Scanf("%s", &msg)
+		msg = file[rand.Intn(tamArray)] + file[rand.Intn(tamArray)]
 
 		tempo := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+
+		fmt.Printf("Sent message: %s\n", msg)
 
 		for _, t := range targetPorts {
 			go send(t, msg, tempo)
@@ -42,15 +59,13 @@ func main() {
 
 		time.Sleep(time.Millisecond)
 
-		// time.Sleep(500 * time.Millisecond)
-
 	}
 
 }
 
 func send(target, msg, tempo string) {
 
-	ServerAddr, err := net.ResolveUDPAddr("udp", serverIP+":"+target)
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+target)
 	CheckError(err)
 
 	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
@@ -69,7 +84,7 @@ func send(target, msg, tempo string) {
 
 	_, err = Conn.Write(buf)
 
-	fmt.Printf("Sent message %s to %s\n", msg, target)
+	// fmt.Printf("Sent message %s to %s\n", msg, target)
 	if err != nil {
 		fmt.Println(msg, err)
 	}
